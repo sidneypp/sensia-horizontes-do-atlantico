@@ -1,0 +1,22 @@
+{
+  "name": "sensia-horizontes-do-atlantico",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./styles.css --minify",
+    "dev": "npm run build:css && next dev",
+    "build": "npm run build:css && next build",
+    "start": "next start",
+    "check": "npm run build:css && next build"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  },
+  "dependencies": {
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}
