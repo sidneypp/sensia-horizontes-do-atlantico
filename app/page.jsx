@@ -194,7 +194,171 @@ function ContactRow({ item }) {
   );
 }
 
-function PortalView({ guide, onLogout, onCopy, copied }) {
+const suggestionCategories = ["Manutenção", "Segurança", "Convivência", "Lazer", "Melhorias", "Outros"];
+const suggestionTowers = ["Torre 1", "Torre 2"];
+const initialSuggestionForm = {
+  name: "",
+  apartment: "",
+  tower: "",
+  category: "Melhorias",
+  title: "",
+  description: "",
+};
+
+function formatSuggestionDate(value) {
+  if (!value) return "";
+
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(value));
+}
+
+function suggestionStatusClassName(status) {
+  if (status === "Concluída") return "border-[#b9d6ce] bg-teal-soft text-teal";
+  if (status === "Em andamento") return "border-[#c4d7e2] bg-blue-soft text-blue";
+  if (status === "Em análise") return "border-[#ead9bd] bg-[#fffaf2] text-sand-deep";
+  return "border-line bg-paper text-muted";
+}
+
+function SuggestionCard({ item, onVote, votingId }) {
+  const voting = votingId === item.id;
+
+  return (
+    <article className="grid gap-3 rounded-[.8rem] border border-line bg-white p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          <span className="rounded-full border border-[#c9dfd9] bg-[#f2f9f6] px-2.5 py-1 text-[.61rem] font-extrabold text-teal">{item.category}</span>
+          <span className={`rounded-full border px-2.5 py-1 text-[.61rem] font-extrabold ${suggestionStatusClassName(item.status)}`}>{item.status}</span>
+        </div>
+        <time className="shrink-0 text-[.63rem] tabular-nums text-muted" dateTime={item.createdAt}>{formatSuggestionDate(item.createdAt)}</time>
+      </div>
+      <div>
+        <h3 className="text-[.92rem] font-extrabold leading-tight text-ink text-balance">{item.title}</h3>
+        <p className="mt-2 whitespace-pre-wrap break-words text-[.74rem] leading-relaxed text-ink-soft text-pretty">{item.description}</p>
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
+        <span className="min-w-0 truncate text-[.66rem] text-muted">Por {item.authorLabel}</span>
+        <button
+          className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[.67rem] font-extrabold focus-visible:outline-[3px] focus-visible:outline-coral/40 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70 ${item.voted ? "border-coral bg-[#fff0ed] text-coral-dark" : "border-line bg-paper text-ink hover:border-coral hover:text-coral"}`}
+          type="button"
+          onClick={() => onVote(item.id)}
+          disabled={voting}
+          aria-pressed={item.voted}
+          aria-label={`${item.voted ? "Retirar apoio de" : "Apoiar"} ${item.title}`}
+        >
+          <span aria-hidden="true">{item.voted ? "♥" : "♡"}</span>
+          <span className="tabular-nums">{voting ? "..." : item.votes}</span>
+          <span>{item.voted ? "Apoiada" : "Apoiar"}</span>
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function SuggestionPanel({ suggestions, configured, error, submitting, votingId, onCreate, onVote }) {
+  const [form, setForm] = useState(initialSuggestionForm);
+  const orderedSuggestions = [...suggestions].sort((left, right) => right.votes - left.votes || new Date(right.createdAt) - new Date(left.createdAt));
+
+  function updateField(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const created = await onCreate(form);
+
+    if (created) {
+      setForm(initialSuggestionForm);
+    }
+  }
+
+  return (
+    <section className="mt-[1.35rem] scroll-mt-24 rounded-[.9rem] border border-[#c9dfd9] bg-[#f2f9f6] p-[clamp(1.4rem,3vw,2rem)] shadow-card" id="sugestoes" aria-labelledby="suggestions-title">
+      <div className="flex items-end justify-between gap-6 max-[780px]:block">
+        <div>
+          <p className="m-0 mb-[.6rem] text-[.69rem] font-extrabold uppercase leading-[1.2] tracking-[.15em] text-teal">Participação dos moradores</p>
+          <h2 className="font-display text-[clamp(1.8rem,3vw,2.5rem)] font-normal leading-[1.05] tracking-[-.035em] text-ink text-balance" id="suggestions-title">Sugestões e melhorias</h2>
+        </div>
+        <p className="m-0 max-w-[30rem] text-right text-[.76rem] text-ink-soft text-pretty max-[780px]:mt-3 max-[780px]:text-left">Compartilhe uma ideia para o condomínio. As sugestões mais apoiadas aparecem primeiro para ajudar a gestão a definir prioridades.</p>
+      </div>
+
+      {!configured ? (
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-dashed border-[#b9d6ce] bg-white px-4 py-4 text-[.76rem] text-ink-soft" role="status">
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-teal-soft text-teal" aria-hidden="true">i</span>
+          <p className="m-0 text-pretty"><strong className="text-ink">Painel em preparação.</strong> A gestão ainda precisa conectar a base de sugestões para liberar os envios e apoios.</p>
+        </div>
+      ) : (
+        <>
+          {error ? <p className="mt-5 rounded-lg border border-[#e8c2bd] bg-[#fff5f3] px-3 py-2.5 text-[.73rem] text-danger text-pretty" role="alert">{error}</p> : null}
+          <div className="mt-5 grid grid-cols-[minmax(18rem,.72fr)_minmax(0,1.28fr)] gap-4 max-[900px]:grid-cols-1">
+            <form className="rounded-[.8rem] border border-[#d4e5df] bg-white p-4" onSubmit={handleSubmit}>
+              <div>
+                <p className="m-0 text-[.69rem] font-extrabold uppercase tracking-[.1em] text-teal">Envie uma ideia</p>
+                <p className="mt-2 text-[.73rem] text-ink-soft text-pretty">Informe seus dados para a gestão conseguir identificar a sugestão. Eles não aparecem completos no painel.</p>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <div className="grid grid-cols-2 gap-2 max-[480px]:grid-cols-1">
+                  <div>
+                    <label className="mb-1.5 block text-[.68rem] font-extrabold text-ink" htmlFor="suggestion-name">Nome</label>
+                    <input className="min-h-10 w-full rounded-lg border border-line bg-paper px-3 py-2 text-[.75rem] text-ink outline-none placeholder:text-muted focus:border-teal focus:ring-4 focus:ring-teal/15" id="suggestion-name" name="name" value={form.name} onChange={updateField} placeholder="Seu nome" minLength="2" maxLength="80" autoComplete="name" required />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[.68rem] font-extrabold text-ink" htmlFor="suggestion-apartment">Apartamento</label>
+                    <input className="min-h-10 w-full rounded-lg border border-line bg-paper px-3 py-2 text-[.75rem] tabular-nums text-ink outline-none placeholder:text-muted focus:border-teal focus:ring-4 focus:ring-teal/15" id="suggestion-apartment" name="apartment" value={form.apartment} onChange={updateField} placeholder="Ex.: 304" maxLength="20" autoComplete="off" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 max-[480px]:grid-cols-1">
+                  <div>
+                    <label className="mb-1.5 block text-[.68rem] font-extrabold text-ink" htmlFor="suggestion-tower">Torre</label>
+                    <select className="min-h-10 w-full rounded-lg border border-line bg-paper px-3 py-2 text-[.75rem] text-ink outline-none focus:border-teal focus:ring-4 focus:ring-teal/15" id="suggestion-tower" name="tower" value={form.tower} onChange={updateField} required>
+                      <option value="">Selecione</option>
+                      {suggestionTowers.map((tower) => <option key={tower} value={tower}>{tower}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[.68rem] font-extrabold text-ink" htmlFor="suggestion-category">Categoria</label>
+                    <select className="min-h-10 w-full rounded-lg border border-line bg-paper px-3 py-2 text-[.75rem] text-ink outline-none focus:border-teal focus:ring-4 focus:ring-teal/15" id="suggestion-category" name="category" value={form.category} onChange={updateField} required>
+                      {suggestionCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[.68rem] font-extrabold text-ink" htmlFor="suggestion-title">Título da sugestão</label>
+                  <input className="min-h-10 w-full rounded-lg border border-line bg-paper px-3 py-2 text-[.75rem] text-ink outline-none placeholder:text-muted focus:border-teal focus:ring-4 focus:ring-teal/15" id="suggestion-title" name="title" value={form.title} onChange={updateField} placeholder="Ex.: Mais iluminação na entrada" minLength="5" maxLength="120" required />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[.68rem] font-extrabold text-ink" htmlFor="suggestion-description">Explique a ideia</label>
+                  <textarea className="min-h-24 w-full resize-y rounded-lg border border-line bg-paper px-3 py-2 text-[.75rem] leading-relaxed text-ink outline-none placeholder:text-muted focus:border-teal focus:ring-4 focus:ring-teal/15" id="suggestion-description" name="description" value={form.description} onChange={updateField} placeholder="Conte o problema e, se quiser, como a solução poderia funcionar." minLength="10" maxLength="2000" required></textarea>
+                </div>
+              </div>
+
+              <button className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-coral px-4 py-2.5 text-[.74rem] font-extrabold text-white hover:bg-coral-dark focus-visible:outline-[3px] focus-visible:outline-coral/40 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70" type="submit" disabled={submitting}>{submitting ? "Enviando..." : "Enviar sugestão"}<span aria-hidden="true">↗</span></button>
+              <p className="mt-3 text-[.64rem] leading-relaxed text-muted text-pretty">Ao enviar, você concorda que a gestão consulte essas informações para avaliar a sugestão.</p>
+            </form>
+
+            <div className="min-w-0 rounded-[.8rem] border border-[#d4e5df] bg-white p-4">
+              <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
+                <div>
+                  <p className="m-0 text-[.69rem] font-extrabold uppercase tracking-[.1em] text-teal">Painel de ideias</p>
+                  <p className="mt-1 text-[.73rem] text-ink-soft text-pretty">Apoie as propostas que fazem sentido para a rotina do condomínio.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-paper px-2.5 py-1 text-[.63rem] font-extrabold tabular-nums text-muted">{suggestions.length} {suggestions.length === 1 ? "ideia" : "ideias"}</span>
+              </div>
+              <div className="mt-3 grid gap-2.5">
+                {orderedSuggestions.length ? orderedSuggestions.map((item) => <SuggestionCard key={item.id} item={item} onVote={onVote} votingId={votingId} />) : <div className="grid min-h-40 place-items-center rounded-lg border border-dashed border-line bg-paper px-5 py-6 text-center"><div><p className="m-0 text-[.78rem] font-extrabold text-ink">Ainda não há sugestões.</p><p className="mt-1 text-[.7rem] text-muted text-pretty">Se você tem uma ideia, use o formulário ao lado para iniciar a conversa.</p></div></div>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function PortalView({ guide, suggestions, suggestionsConfigured, suggestionsError, suggestionsSubmitting, votingSuggestionId, onLogout, onCopy, copied, onCreateSuggestion, onVoteSuggestion }) {
   const facialEmailLink = `mailto:${guide.facial.email}?subject=${encodeURIComponent(guide.facial.subject)}`;
 
   return (
@@ -206,6 +370,7 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
           <nav className="main-nav ml-auto flex items-center gap-[clamp(1rem,3vw,2.3rem)] max-[780px]:order-3 max-[780px]:ml-0 max-[780px]:w-full max-[780px]:justify-between" aria-label="Navegação principal">
             <a className="is-active relative border-b-2 border-coral py-[.55rem] text-[.77rem] font-extrabold text-ink no-underline max-[780px]:pb-1.5" href="#inicio">Início</a>
             <a className="relative py-[.55rem] text-[.77rem] font-extrabold text-muted no-underline hover:text-ink max-[780px]:pb-1.5" href="#mais-consultados">Consultas</a>
+            <a className="relative py-[.55rem] text-[.77rem] font-extrabold text-muted no-underline hover:text-ink max-[780px]:pb-1.5" href="#sugestoes">Sugestões</a>
             <a className="relative py-[.55rem] text-[.77rem] font-extrabold text-muted no-underline hover:text-ink max-[780px]:pb-1.5" href="#apoio">Apoio</a>
             <a className="relative py-[.55rem] text-[.77rem] font-extrabold text-muted no-underline hover:text-ink max-[780px]:pb-1.5" href="#documentos">Documentos</a>
             <a className="relative py-[.55rem] text-[.77rem] font-extrabold text-muted no-underline hover:text-ink max-[780px]:pb-1.5" href="#faq">FAQ</a>
@@ -223,7 +388,7 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
           <div className="welcome-copy flex flex-col justify-center p-[clamp(1.6rem,4vw,3.3rem)] max-[1000px]:p-9 max-[780px]:min-h-0 max-[780px]:px-6 max-[780px]:py-8">
             <p className="eyebrow m-0 mb-3.5 text-[.69rem] font-extrabold uppercase leading-[1.2] tracking-[.15em] text-teal">Guia de consulta rápida</p>
             <h1 className="max-w-[16ch] font-display text-[clamp(2.3rem,4vw,3.75rem)] font-normal leading-[.99] tracking-[-.045em] text-ink text-balance max-[1000px]:text-[clamp(2.3rem,4.5vw,3.35rem)] max-[780px]:max-w-[15ch] max-[780px]:text-[clamp(2.35rem,9vw,3.5rem)]" id="portal-title" tabIndex="-1">O essencial para a rotina do morador.</h1>
-            <p className="welcome-lead mt-[1rem] max-w-[28rem] text-[.9rem] text-ink-soft text-pretty">Cadastro facial, senhas Wi-Fi, contatos e documentos em um só lugar.</p>
+            <p className="welcome-lead mt-[1rem] max-w-[28rem] text-[.9rem] text-ink-soft text-pretty">Cadastro facial, senhas Wi-Fi, contatos, documentos e um espaço para sugestões em um só lugar.</p>
             <div className="welcome-actions mt-6 flex flex-wrap items-center gap-4 max-[480px]:flex-col max-[480px]:items-start max-[480px]:gap-3">
               <a className="button button--primary inline-flex min-h-12 items-center justify-center gap-3 rounded-[.55rem] border border-transparent bg-coral px-[1.15rem] py-3 text-[.79rem] font-extrabold text-white no-underline hover:bg-coral-dark focus-visible:bg-coral-dark" href="#mais-consultados">Ver acessos rápidos<Icon><path d="M5 12h13M13 6l6 6-6 6" /></Icon></a>
               <a className="text-link text-[.78rem] font-extrabold text-ink no-underline hover:text-coral focus-visible:outline-[3px] focus-visible:outline-coral/40 focus-visible:outline-offset-3" href="#wifi">Ver senhas Wi-Fi <span className="ml-1 text-base text-coral" aria-hidden="true">↗</span></a>
@@ -251,6 +416,8 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
           <p className="m-0 flex-1 text-pretty"><strong className="text-ink">Guia de consulta rápida.</strong> Este espaço reúne respostas práticas do dia a dia. Comunicados e agenda oficiais continuam no <strong className="text-ink">Conviver Sensia</strong>.</p>
           <a className="inline-flex shrink-0 items-center gap-1.5 font-extrabold text-teal no-underline hover:text-coral" href="https://sensia.ucondo.com.br/login.aspx" target="_blank" rel="noopener noreferrer">Abrir Conviver <span aria-hidden="true">↗</span></a>
         </div>
+
+        <SuggestionPanel suggestions={suggestions} configured={suggestionsConfigured} error={suggestionsError} submitting={suggestionsSubmitting} votingId={votingSuggestionId} onCreate={onCreateSuggestion} onVote={onVoteSuggestion} />
 
         <section className="mt-[1.35rem]" aria-labelledby="procedimentos-title">
           <div className="flex items-end justify-between gap-6 max-[780px]:block"><div><p className="m-0 mb-[.6rem] text-[.69rem] font-extrabold uppercase leading-[1.2] tracking-[.15em] text-teal">Informações mais consultadas</p><h2 className="font-display text-[clamp(1.8rem,3vw,2.5rem)] font-normal leading-[1.05] tracking-[-.035em] text-balance" id="procedimentos-title">Procedimentos e acessos</h2></div><p className="m-0 max-w-[27rem] text-right text-[.78rem] text-ink-soft text-pretty max-[780px]:mt-3 max-[780px]:text-left">Consulte aqui o cadastro facial e as senhas das áreas comuns, sem precisar procurar em mensagens antigas.</p></div>
@@ -317,7 +484,7 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
             ["Inquilinos podem usar as áreas comuns?", "Sim. Durante o prazo da locação, o direito de utilização das áreas comuns passa ao inquilino, que também deve respeitar as regras do condomínio."],
             ["Como devo usar a vaga de garagem?", "Use a vaga conforme o projeto e a convenção, respeitando as faixas demarcadas e as áreas de manobra. Não é permitido estacionar fora das vagas destinadas a veículos."],
             ["Preciso de autorização para fazer obra ou alterar a fachada?", "Sim. Antes de executar obras, reformas ou alterações externas, consulte a convenção, o regimento e a administração. Não altere fachada, varanda ou elementos estruturais fora dos padrões autorizados."],
-            ["Como registro uma reclamação ou solicitação?", "Use o Livro de Ocorrências, disponível na portaria, para registrar reclamações, sugestões e pedidos de providência. O registro deve ser encaminhado ao síndico."],
+            ["Como registro uma reclamação ou solicitação?", "Para compartilhar uma ideia de melhoria, use o painel de Sugestões. Para reclamações ou pedidos de providência, use o Livro de Ocorrências, disponível na portaria, e encaminhe o registro ao síndico."],
           ].map(([question, answer]) => <details className="rounded-lg border border-line bg-white px-4 py-3" key={question}><summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[.8rem] font-extrabold text-ink marker:hidden">{question}<span className="grid size-6 shrink-0 place-items-center rounded-full bg-teal-soft text-teal" aria-hidden="true">+</span></summary><p className="mt-3 border-t border-line pt-3 text-[.74rem] text-ink-soft text-pretty">{answer}</p></details>)}</div>
           <p className="mt-5 text-[.68rem] text-muted text-pretty">Esta seção é um resumo de consulta. Em caso de conflito ou dúvida, prevalecem os documentos oficiais: <a className="font-extrabold text-teal no-underline hover:text-coral" href={documents.convention} target="_blank" rel="noopener">Convenção</a> e <a className="font-extrabold text-teal no-underline hover:text-coral" href={documents.regiment} target="_blank" rel="noopener">Regimento Interno</a>.</p>
         </section>
@@ -332,11 +499,17 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
 
 export default function HomePage() {
   const [guide, setGuide] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsConfigured, setSuggestionsConfigured] = useState(true);
+  const [suggestionsError, setSuggestionsError] = useState("");
+  const [suggestionsSubmitting, setSuggestionsSubmitting] = useState(false);
+  const [votingSuggestionId, setVotingSuggestionId] = useState("");
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState("");
   const sessionCheckStarted = useRef(false);
+  const suggestionsLoadStarted = useRef(false);
 
   useEffect(() => {
     if (sessionCheckStarted.current) {
@@ -351,6 +524,31 @@ export default function HomePage() {
       .catch(() => setGuide(null))
       .finally(() => setChecking(false));
   }, []);
+
+  useEffect(() => {
+    if (!guide || suggestionsLoadStarted.current) {
+      return;
+    }
+
+    suggestionsLoadStarted.current = true;
+
+    fetch("/api/suggestions", { cache: "no-store" })
+      .then(async (response) => ({ response, data: await response.json().catch(() => ({})) }))
+      .then(({ response, data }) => {
+        if (!response.ok) {
+          if (data.configured === false) {
+            setSuggestionsConfigured(false);
+          }
+          setSuggestionsError(data.error || "Não foi possível carregar o painel de sugestões.");
+          return;
+        }
+
+        setSuggestionsConfigured(data.configured !== false);
+        setSuggestions(data.suggestions || []);
+        setSuggestionsError("");
+      })
+      .catch(() => setSuggestionsError("Não foi possível carregar o painel de sugestões."));
+  }, [guide]);
 
   async function handleLogin(event, password) {
     event.preventDefault();
@@ -372,6 +570,7 @@ export default function HomePage() {
         throw new Error(guideData.error || "Os dados do guia ainda não foram configurados.");
       }
 
+      suggestionsLoadStarted.current = false;
       setGuide(guideData);
     } catch (loginError) {
       setError(loginError.message);
@@ -383,7 +582,54 @@ export default function HomePage() {
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     setGuide(null);
+    suggestionsLoadStarted.current = false;
+    setSuggestions([]);
+    setSuggestionsConfigured(true);
+    setSuggestionsError("");
+    setVotingSuggestionId("");
     setCopied("");
+  }
+
+  async function handleCreateSuggestion(payload) {
+    setSuggestionsError("");
+    setSuggestionsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/suggestions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Não foi possível enviar a sugestão.");
+      }
+
+      setSuggestions((current) => [data.suggestion, ...current]);
+      return true;
+    } catch (suggestionError) {
+      setSuggestionsError(suggestionError.message);
+      return false;
+    } finally {
+      setSuggestionsSubmitting(false);
+    }
+  }
+
+  async function handleVoteSuggestion(id) {
+    setSuggestionsError("");
+    setVotingSuggestionId(id);
+
+    try {
+      const response = await fetch(`/api/suggestions/${id}/vote`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Não foi possível registrar o apoio.");
+      }
+
+      setSuggestions((current) => current.map((suggestion) => suggestion.id === id ? { ...suggestion, votes: data.votes, voted: data.voted } : suggestion));
+    } catch (voteError) {
+      setSuggestionsError(voteError.message);
+    } finally {
+      setVotingSuggestionId("");
+    }
   }
 
   async function handleCopy(value) {
@@ -400,5 +646,5 @@ export default function HomePage() {
     return <LoadingView />;
   }
 
-  return guide ? <PortalView guide={guide} onLogout={handleLogout} onCopy={handleCopy} copied={copied} /> : <AuthView onSubmit={handleLogin} error={error} submitting={submitting} />;
+  return guide ? <PortalView guide={guide} suggestions={suggestions} suggestionsConfigured={suggestionsConfigured} suggestionsError={suggestionsError} suggestionsSubmitting={suggestionsSubmitting} votingSuggestionId={votingSuggestionId} onLogout={handleLogout} onCopy={handleCopy} copied={copied} onCreateSuggestion={handleCreateSuggestion} onVoteSuggestion={handleVoteSuggestion} /> : <AuthView onSubmit={handleLogin} error={error} submitting={submitting} />;
 }
