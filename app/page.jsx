@@ -156,15 +156,23 @@ function WifiRow({ item, copied, onCopy }) {
 }
 
 function ContactRow({ item }) {
+  const mark = item.label.includes("Portaria") ? "24h" : item.label.includes("Administradora") ? "PL" : "SR";
+
   return (
-    <div className="contact-row grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 border-b border-line py-3 last:border-b-0">
-      <span className="contact-label col-span-full text-[.63rem] font-extrabold uppercase tracking-[.1em] text-muted">{item.label}</span>
-      <span className="contact-value-group grid justify-items-end gap-[.18rem] self-center">
-        {item.phone ? <a className="contact-link text-right text-[.76rem] font-extrabold text-ink no-underline hover:text-coral" href={`tel:${item.phone.replace(/\D/g, "")}`}>{item.phone}</a> : null}
-        {item.email ? <a className="contact-link max-w-[15rem] break-all text-right text-[.7rem] font-extrabold text-ink no-underline hover:text-coral" href={`mailto:${item.email}`}>{item.email}</a> : null}
-      </span>
-      <small className="self-center text-right text-[.7rem] text-muted text-pretty">{item.use}</small>
-    </div>
+    <article className="contact-row flex min-w-0 items-start gap-2 rounded-[.6rem] border border-line bg-paper p-[.65rem] text-ink">
+      <span className="grid size-[1.85rem] shrink-0 place-items-center rounded-full bg-teal-soft text-[.52rem] font-black text-teal" aria-hidden="true">{mark}</span>
+      <div className="grid min-w-0 flex-1 gap-[.18rem]">
+        <div className="flex items-start justify-between gap-2">
+          <strong className="text-[.68rem] leading-tight text-balance">{item.label}</strong>
+          <span className="shrink-0 text-[.9rem] leading-none text-coral" aria-hidden="true">↗</span>
+        </div>
+        <div className="mt-1 grid min-w-0 gap-1">
+          {item.phone ? <a className="w-fit max-w-full text-[.72rem] font-extrabold tabular-nums text-ink no-underline hover:text-coral" href={`tel:${item.phone.replace(/\D/g, "")}`}>{item.phone}</a> : null}
+          {item.email ? <a className="max-w-full break-all text-[.65rem] font-extrabold leading-tight text-ink no-underline hover:text-coral" href={`mailto:${item.email}`}>{item.email}</a> : null}
+        </div>
+        <small className="mt-1 text-[.62rem] leading-snug text-muted text-pretty">{item.use}</small>
+      </div>
+    </article>
   );
 }
 
@@ -264,7 +272,7 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
               <div className="channel-card rounded-[.7rem] border border-[#ead9bd] bg-[#fffaf2] p-4"><div className="channel-heading flex items-center gap-3"><span className="channel-icon grid size-[2.2rem] shrink-0 place-items-center rounded-[.55rem] bg-sand text-[.57rem] font-black tracking-[.04em] text-sand-deep" aria-hidden="true">CS</span><div className="grid min-w-0 gap-[.15rem]"><strong className="text-[.8rem] text-ink">Conviver Sensia</strong><small className="text-[.66rem] leading-[1.3] text-ink-soft text-pretty">Canal oficial para reservas, comunicados e agenda</small></div></div><div className="channel-actions ml-[2.95rem] mt-3 flex flex-wrap gap-[.42rem]">{guide.support.conviver.links.map((link) => <a className="channel-link inline-flex min-h-[1.8rem] items-center gap-1.5 rounded-full border border-[#dfcba9] px-[.62rem] text-[.61rem] font-extrabold text-ink no-underline hover:border-coral hover:text-coral" href={link.url} target="_blank" rel="noopener noreferrer" key={link.label}>{link.label} <span className="text-[.8rem] text-coral" aria-hidden="true">↗</span></a>)}</div></div>
               <div className="channel-card channel-card--teal rounded-[.7rem] border border-[#c9dfd9] bg-[#f2f9f6] p-4"><div className="channel-heading flex items-center gap-3"><span className="channel-icon grid size-[2.2rem] shrink-0 place-items-center rounded-[.55rem] bg-teal-soft text-[.57rem] font-black tracking-[.04em] text-teal" aria-hidden="true">MS</span><div className="grid min-w-0 gap-[.15rem]"><strong className="text-[.8rem] text-ink">Meu Sensia</strong><small className="text-[.66rem] leading-[1.3] text-ink-soft text-pretty">Garantia e assistência técnica da unidade</small></div></div><div className="channel-actions ml-[2.95rem] mt-3 flex flex-wrap gap-[.42rem]"><a className="channel-link inline-flex min-h-[1.8rem] items-center gap-1.5 rounded-full border border-[#b9d6ce] px-[.62rem] text-[.61rem] font-extrabold text-ink no-underline hover:border-coral hover:text-coral" href={guide.support.meuSensia} target="_blank" rel="noopener noreferrer">Acessar portal <span className="text-[.8rem] text-coral" aria-hidden="true">↗</span></a></div></div>
             </div>
-            <div className="contact-list mt-5 grid border-t border-line pt-4">{guide.support.contacts.map((item) => <ContactRow key={item.label} item={item} />)}</div>
+            <div className="contact-list mt-5 grid gap-2" aria-label="Telefones e contatos úteis">{guide.support.contacts.map((item) => <ContactRow key={item.label} item={item} />)}</div>
             <div className="block-representatives mt-5 border-t border-line pt-4"><div><h3 className="text-[.8rem] font-extrabold text-ink">Representantes de bloco</h3><p className="mt-1 text-[.68rem] text-muted text-pretty">Manutenção local, limpeza, segurança e convivência da sua torre.</p></div><div className="representatives-grid mt-3 grid grid-cols-2 gap-2 max-[780px]:grid-cols-1">{guide.support.representatives.map((item) => <a className="representative-row flex min-w-0 items-center gap-2 rounded-[.6rem] border border-line p-[.65rem] text-ink no-underline hover:text-coral" href={`tel:${item.phone.replace(/\D/g, "")}`} key={item.label}><span className="grid size-[1.85rem] shrink-0 place-items-center rounded-full bg-sand text-[.55rem] font-black text-sand-deep" aria-hidden="true">{item.short}</span><span className="grid min-w-0 gap-[.15rem]"><strong className="text-[.65rem] leading-tight text-balance">{item.label}</strong><small className="text-[.6rem] text-muted">{item.phone}</small></span><span className="ml-auto text-[.9rem] text-coral" aria-hidden="true">↗</span></a>)}</div></div>
           </article>
 
