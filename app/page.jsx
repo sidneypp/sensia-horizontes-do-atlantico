@@ -8,6 +8,24 @@ const documents = {
   curtain: "/assets/references/modelo-cortina-de-vidro.jpeg",
 };
 
+function providerClassName(provider) {
+  const normalizedProvider = provider.toLowerCase();
+
+  if (normalizedProvider.includes("claro")) {
+    return "border-[#f1b7bd] bg-[#fff0f1] text-[#c3182c]";
+  }
+
+  if (normalizedProvider.includes("vivo")) {
+    return "border-[#d8b6e8] bg-[#f7effc] text-[#6a2c91]";
+  }
+
+  if (normalizedProvider.includes("cone")) {
+    return "border-blue bg-blue-soft text-blue";
+  }
+
+  return "border-line bg-white text-ink";
+}
+
 function Icon({ children, className = "" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
@@ -259,7 +277,7 @@ function PortalView({ guide, onLogout, onCopy, copied }) {
         <section className="mt-[1.35rem] rounded-[.9rem] border border-line bg-white p-[clamp(1.4rem,3vw,2rem)] shadow-card" id="servicos" aria-labelledby="servicos-title">
           <SectionHeading eyebrow="Serviços do condomínio" title="Serviços e facilidades" id="servicos-title" icon="+" />
           <div className="mt-5 grid grid-cols-2 gap-4 max-[780px]:grid-cols-1">
-            <article className="rounded-xl border border-line bg-paper p-4" id="internet"><p className="m-0 text-[.69rem] font-extrabold uppercase tracking-[.1em] text-teal">Internet disponível</p><h3 className="mt-2 font-display text-[1.35rem] leading-tight text-ink text-balance">Provedores habilitados</h3><p className="mt-2 text-[.76rem] text-ink-soft">As opções informadas para o condomínio são:</p><div className="mt-3 flex flex-wrap gap-2" aria-label="Provedores habilitados">{guide.services.providers.map((provider) => <span className="rounded-full border border-[#c9dfd9] bg-teal-soft px-3 py-1.5 text-[.7rem] font-extrabold text-teal" key={provider}>{provider}</span>)}</div></article>
+            <article className="rounded-xl border border-line bg-paper p-4" id="internet"><p className="m-0 text-[.69rem] font-extrabold uppercase tracking-[.1em] text-teal">Internet disponível</p><h3 className="mt-2 font-display text-[1.35rem] leading-tight text-ink text-balance">Provedores habilitados</h3><p className="mt-2 text-[.76rem] text-ink-soft">As opções informadas para o condomínio são:</p><div className="mt-3 flex flex-wrap gap-2" aria-label="Provedores habilitados">{guide.services.providers.map((provider) => <span className={`rounded-full border px-3 py-1.5 text-[.7rem] font-extrabold ${providerClassName(provider)}`} key={provider}>{provider}</span>)}</div></article>
             <article className="rounded-xl border border-[#ead9bd] bg-[#fffaf2] p-4" id="lavanderia"><p className="m-0 text-[.69rem] font-extrabold uppercase tracking-[.1em] text-sand-deep">Lavanderia compartilhada</p><h3 className="mt-2 font-display text-[1.35rem] leading-tight text-ink text-balance">Lavanderia OMO</h3><div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[#ead9bd] bg-white px-3 py-2.5"><div><span className="block text-[.66rem] font-extrabold uppercase tracking-[.08em] text-muted">Código</span><code className="mt-1 block font-mono text-[.82rem] font-bold text-teal">{guide.services.laundry.code}</code></div><CopyButton value={guide.services.laundry.code} copied={copied === guide.services.laundry.code} onCopy={onCopy} /></div><dl className="mt-3 grid grid-cols-2 gap-2 text-center"><div className="rounded-lg border border-[#ead9bd] bg-white px-2 py-2"><dt className="text-[.62rem] text-muted">Para lavar</dt><dd className="m-0 mt-1 text-[.82rem] font-extrabold tabular-nums text-ink">{guide.services.laundry.washPrice}</dd></div><div className="rounded-lg border border-[#ead9bd] bg-white px-2 py-2"><dt className="text-[.62rem] text-muted">Para secar</dt><dd className="m-0 mt-1 text-[.82rem] font-extrabold tabular-nums text-ink">{guide.services.laundry.dryPrice}</dd></div></dl><p className="mt-3 text-[.72rem] text-ink-soft text-pretty"><strong className="text-ink">Importante:</strong> {guide.services.laundry.note}</p><div className="mt-3 flex flex-wrap gap-2"><a className="inline-flex min-h-[1.9rem] items-center rounded-full border border-[#dfcba9] px-3 text-[.64rem] font-extrabold text-ink no-underline hover:border-coral hover:text-coral" href={guide.services.laundry.appStore} target="_blank" rel="noopener noreferrer">App Store <span className="ml-1 text-coral" aria-hidden="true">↗</span></a><a className="inline-flex min-h-[1.9rem] items-center rounded-full border border-[#dfcba9] px-3 text-[.64rem] font-extrabold text-ink no-underline hover:border-coral hover:text-coral" href={guide.services.laundry.googlePlay} target="_blank" rel="noopener noreferrer">Google Play <span className="ml-1 text-coral" aria-hidden="true">↗</span></a></div></article>
           </div>
         </section>
